@@ -1,73 +1,76 @@
-# React + TypeScript + Vite
+소정민 자판기 프로젝트
+=============
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# 실행 방법
+/jeongmin-vending-machine 에서 'npm install' 후 'npm run dev'로 실행
+실행 후 'http://localhost:5173/'를 통해 기능에 접근
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+# 사용된 버전
+react 19.1.1
+vite 7.1.7
+zustand 5.0.8
 
-## React Compiler
+# 프로젝트 설명
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 프로젝트 개요
+자판기에서 사용자가 원하는 음료를 얻는 과정을 구현함
 
-## Expanding the ESLint configuration
+## 기능 설명
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 전제조건
+1. 사용자가 사용가능한 결제수단
+    1. 현금 : 100원 / 500원 / 1,000원 / 5,000원 / 10,000원권 사용가능
+    2. 카드 : 카드결제 가능
+2. 구매 가능한 음료수
+    1. 콜라 : 1,100원
+    2. 물 : 600원
+    3. 커피 : 700원
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 유저 액션 및 동작 방식
+1. 현금 투입
+  - 자판기에 현금을 투입합니다.
+  - 전제조건에 정의되어있는 단위의 금액을 투입할 수 있습니다.
+  - 20,000원 이상의 금액을 투입할 수 없도록 정의하였습니다.(현금 반환시 동전으로 이루어질 것으로 예상하여 투입 금액에 상한을 설정)
+2. 상품 선택
+  - 구매하고자하는 상품을 선택합니다.
+  - 선택한 상품을 다시 선택하여 선택을 해제할 수 있습니다.
+  - 상품을 선택한 후 다른 상품을 선택하여 교체할 수 있습니다.
+3. 카드 투입
+  - 결제를 위해 카드를 투입합니다.
+  - 카드는 결제 전 결제 가능 여부 작업을 거치며, 실패할 경우 카드 투입 이전 상태로 돌아갑니다.
+  - 카드 투입 전에 현금이 투입되어있는 경우 현금을 먼저 사용하고, 남은 차익만큼만 카드로 결제됩니다.
+4. 현금 반환
+  - 투입했던 현금을 반환합니다.
+5. 재고 추가
+  - admin 기능으로, 각 상품별로 재고를 추가할 수 있습니다.
+  - 각 상품의 초기 재고는 0이고, 재고가 0인 경우 상품 선택 버튼이 비활성화 됩니다.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### 자판기 사용 플로우
+1. 구매 결정
+  1. 현금 결제: 현금 투입 또는 상품 선택을 통해 구매가 결정됩니다. 두 액션의 결과로 '투입된 누적 금액이 선택된 상품의 가격 이상이 되는 시점'에 구매가 진행됩니다.
+  2. 카드 결제: 카드 결제의 경우 상품이 선택되어있는 상태에서 카드 투입하면 구매가 진행됩니다.
+3. 구매 후 프로세스
+  상품을 제공하고, 재고 값을 수정한 다음, 초기 상태(idle)로 돌아갑니다.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 구현 설명
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 디렉터리 구성
+1. component: 프레젠테이셔널 영역을 담당하는 컴포넌트 구현
+2. hooks: 서비스 로직을 주로 담당하는 커스텀 훅스 구현
+3. state: zustand를 활용하여 app 내 공용 또는 지역 상태를 구현
+4. type: 타입 및 클래스 구현
+5. util: 도메인에 제약이 없는 공통 기능 구현
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 구현 의도
+- 관심사 분리
+뷰 부분과 로직 부분을 최대한 분리하기위해 의도적으로 컴포넌트에 로컬 스테이트 사용을 지양했습니다. 현재 기능선에서는 로컬 스테이트를 사용하지 않고 구현할 수 있었습니다. 컴포넌트 내부에서는 ui 구현에 해당하는 관심사만 담당하고, useMachineHook과 useMachineStore 부분에서 로직 및 상태를 담당하도록 분리했습니다. 자연스럽게 view - useMachineHook - useMachineStore 구조로 계층화하여 관심사 분리하였습니다.
+- 로직 및 상태 구현
+초기 계획으로는 useMachineHook에서 로직 및 상태를 모두 구현하고자 했습니다. 하지만 해당 훅을 여러 컴포넌트에서 재사용하기 때문에 발생하는, 스테이트가 동기화 되지 않는 문제와 스테이트 변경시 동시성 이슈가 발생하였고, 해당 문제를 해결하기 위해 스테이트를 일원화(zustand)하고 로직을 분산 처리(CustomerController 내의 useEffect)하였습니다.
+- 구매 결정 시기 관련 로직
+현금 결제의 경우 2가지 액션에 의해 결정되기 때문에 액션 로직에 포함시키기 보다는 상태 기반으로 트리거 되도록 useEffect로 동작하도록 하였고, 카드 결제는 단일하게 카드 투입으로만 트리거 되기 때문에 액션 기반으로 동작하도록 했습니다.(현금결제 -> useEffect를 통해 selectedProduct와 cash의 변화를 읽고 동작, 카드 결제 -> 카드 투입시 동작) 위 설명된 내용처럼 처음에는 useMachineHook에서 구현하려 했지만 재사용으로 인한 동시성 이슈(useEffect가 여러번 트리거 되는 현상)로 인해 결국 해당 컴포넌트에서 구현토록 변경했습니다.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 보완점 및 아쉬운점
+- 자판기 상태(PurchaseProcess)를 단순하게 가고자 의도했지만, 모종의 조건(상품 선택 상태 또는 카드 승인 상태)으로 인해 유저 화면에 메시지를 표시해주어야 하는 필요가 생겼고, 결국은 자판기 상태를 추가하여 해결하였다. 예시로 상품 선택 상태는 상품 선택 값으로(없는경우 undefined) 판단하고자 했지만 결국 'productSelected'를 추가하게 되었다. 상태 단계가 늘어나는게 불가피하다면 초기에 상태를 세분화하여 정의하고 상태 머신 패턴으로 구현하였다면 보다 더 이해하기 편한 구조가 되지 않았을까 하는 아쉬움이 남습니다.
+- 컴포넌트 구분을 사용자와 어드민을 의도적으로 나누어서 했지만 크게 의미있는 구분이 아니었던 것 같습니다.
+- 현금 반환 시스템과 관련해서 또 하나의 문제 해결을 할 수 있는 여지가 있었는데, 해당 부분을 다루지 않은건 아쉽습니다.
